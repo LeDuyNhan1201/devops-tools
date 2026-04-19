@@ -1,0 +1,30 @@
+############################
+# TLS TO BROKER
+############################
+security.protocol=SASL_SSL
+ssl.truststore.type=PKCS12
+ssl.truststore.location=/etc/kafka/secrets/truststore.p12
+ssl.truststore.password=${CERT_SECRET}
+sasl.mechanism=OAUTHBEARER
+
+############################
+# STRIMZI LOGIN HANDLER
+############################
+sasl.login.callback.handler.class=${SASL_LOGIN_CALLBACK_HANDLER_CLASS}
+
+############################
+# OAUTH JAAS CONFIG
+############################
+sasl.jaas.config=\
+org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
+    oauth.token.endpoint.uri="${KAFKA_IDP_TOKEN_ENDPOINT}" \
+    oauth.client.id="${KAFKA_BACKEND_CLIENT_ID}" \
+    oauth.assertion.private.key.file="/etc/kafka/secrets/oauth/private.key" \
+    oauth.assertion.private.key.passphrase="${CERT_SECRET}" \
+    oauth.assertion.algorithm="RS256" \
+    oauth.scope="kafka.produce kafka.consume" \
+    oauth.groups="${KAFKA_IDP_GROUP_CLAIM_NAME}" \
+    oauth.audience="${KAFKA_IDP_EXPECTED_AUDIENCE}" \
+    oauth.ssl.truststore.type="PKCS12" \
+    oauth.ssl.truststore.location="/etc/kafka/secrets/truststore.p12" \
+    oauth.ssl.truststore.password="${CERT_SECRET}";

@@ -1,0 +1,192 @@
+x-keycloak-env: &ldnhan-keycloak-env
+  # --- Keycloak Configuration ---
+  KC_HTTP_MANAGEMENT_PORT: 9990
+  KC_METRICS_ENABLED: true
+  KC_HEALTH_ENABLED: true
+  KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+  KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+  KC_LOG_LEVEL: "info,org.keycloak.connections.infinispan.DefaultInfinispanConnectionProviderFactory:debug"
+  KC_CACHE_STACK: "jdbc-ping"
+  KC_SPI_STICKY_SESSION_ENCODER__INFINISPAN__SHOULD_ATTACH_ROUTE: true
+  # --- HTTP & Host Configuratiown ---
+  KC_HOSTNAME: "https://${KEYCLOAK_HOSTNAME}:${GATEWAY_PORT}"
+  KC_HOSTNAME_STRICT: "false"
+  KC_HTTP_ENABLED: "true"
+  KC_PROXY_HEADERS: "xforwarded"
+  KC_PROXY: "edge"
+  # --- Database Configuration ---
+  KC_DB: postgres
+  KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak?sslmode=verify-full&sslrootcert=/opt/keycloak/conf/root.crt&sslcert=/opt/keycloak/conf/server.crt&sslkey=/opt/keycloak/conf/server.key
+  KC_DB_USERNAME: ${POSTGRES_USER}
+  KC_DB_PASSWORD: ${POSTGRES_TEXT_PASSWORD}
+
+x-keycloak-command: &ldnhan-keycloak-command
+  command: [
+    "start",
+    "--import-realm",
+    "--optimized",
+    "--verbose", # may not need in production
+    "--cache=ispn",
+#    "--cache=local" # use for "start-dev" mode with single node
+#    "--cache-config-file=/opt/keycloak/conf/cache-ispn.xml",
+    "--cache-config-mutate=true" # enable when override default cache
+  ]
+
+services:
+  # --------- Envoy ---------
+  envoy:
+    image: envoyproxy/envoy:${ENVOY_TAG:-latest}
+    container_name: envoy
+    ports:
+      - "${GATEWAY_PORT}:443"
+      - "9901:9901"
+    networks:
+      - cluster-network
+    command: [ "envoy", "-c", "/etc/envoy/envoy.yaml" ]
+#    healthcheck:
+#      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9901 && echo -e 'GET /ready HTTP/1.1\r\nHost: localhost:9901\r\n\r\n' >&3 && grep -q LIVE <&3"]
+#      interval: 10s
+#      timeout: 3s
+#      retries: 3
+#      start_period: 10s
+    volumes:
+      - ../envoy/envoy.dev.yaml:/etc/envoy/envoy.yaml
+      - ../secrets/certs/envoy:/etc/envoy/certificates
+
+  # --------- Postgres ---------
+  postgres:
+#    build:
+#      args:
+#        POSTGRES_TAG: ${POSTGRES_TAG:-latest}
+#      context: ../postgres
+    image: ${NAMESPACE}/${REPOSITORY_NAME}/postgres:${POSTGRES_TAG:-latest}
+    container_name: postgres
+    ports:
+      - "5438:5432"
+    networks:
+      - cluster-network
+    command: >
+      postgres
+      -c max_connections=500
+      -c config_file=/etc/postgres/postgres.conf
+      -c hba_file=/etc/postgres/pg_hba.conf
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: always
+    volumes:
+      - ../postgres/config/postgres.conf:/etc/postgres/postgres.conf:ro
+      - ../postgres/config/pg_hba.conf:/etc/postgres/pg_hba.conf:ro
+      - ../postgres/init-db:/docker-entrypoint-initdb.d:ro
+      - ../data/pgdata:/var/lib/postgresql
+    secrets:
+      - postgres_password
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+#      POSTGRES_PASSWORD: ${POSTGRES_TEXT_PASSWORD} # Use secret instead
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password # Reference to the secret
+      PGDATA: /var/lib/postgresql/18/docker
+    env_file: ../.env
+
+  # --------- Keycloak cluster ---------
+  keycloak0:
+    image: ${NAMESPACE}/${REPOSITORY_NAME}/keycloak:${KEYCLOAK_TAG:-latest}
+    container_name: keycloak0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8881:8080" # HTTP
+      - "9991:9990" # Management port
+      - "7801:7800" # JGroups
+    networks:
+      - cluster-network
+    <<: *ldnhan-keycloak-command
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9990; echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost:9990\r\nConnection: close\r\n\r\n' >&3; cat <&3 | grep -q '\"status\": \"UP\"' && exit 0 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: always # unless-stopped
+    volumes:
+      - ../keycloak/import:/opt/keycloak/data/import
+      - ../keycloak/export:/opt/keycloak/data/export
+#      - ../keycloak/config/cache-ispn.xml:/opt/keycloak/conf/cache-ispn.xml
+    environment:
+      <<: *ldnhan-keycloak-env
+      KC_SPI_CACHE_EMBEDDED__DEFAULT__MACHINE_NAME: node0
+    env_file: ../.env
+
+  keycloak1:
+    image: ${NAMESPACE}/${REPOSITORY_NAME}/keycloak:${KEYCLOAK_TAG:-latest}
+    container_name: keycloak1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8882:8080" # HTTP
+      - "9992:9990" # Management port
+      - "7802:7800" # JGroups
+    networks:
+      - cluster-network
+    <<: *ldnhan-keycloak-command
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9990; echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost:9990\r\nConnection: close\r\n\r\n' >&3; cat <&3 | grep -q '\"status\": \"UP\"' && exit 0 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: always # unless-stopped
+    volumes:
+      - ../keycloak/import:/opt/keycloak/data/import
+      - ../keycloak/export:/opt/keycloak/data/export
+#      - ../keycloak/config/cache-ispn.xml:/opt/keycloak/conf/cache-ispn.xml
+    environment:
+      <<: *ldnhan-keycloak-env
+      KC_SPI_CACHE_EMBEDDED__DEFAULT__MACHINE_NAME: node1
+    env_file: ../.env
+
+  keycloak2:
+    image: ${NAMESPACE}/${REPOSITORY_NAME}/keycloak:${KEYCLOAK_TAG:-latest}
+    container_name: keycloak2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8883:8080" # HTTP
+      - "9993:9990" # Management port
+      - "7803:7800" # JGroups
+    networks:
+      - cluster-network
+    <<: *ldnhan-keycloak-command
+    healthcheck:
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9990; echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost:9990\r\nConnection: close\r\n\r\n' >&3; cat <&3 | grep -q '\"status\": \"UP\"' && exit 0 || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: always # unless-stopped
+    volumes:
+      - ../keycloak/import:/opt/keycloak/data/import
+      - ../keycloak/export:/opt/keycloak/data/export
+#      - ../keycloak/config/cache-ispn.xml:/opt/keycloak/conf/cache-ispn.xml
+    environment:
+      <<: *ldnhan-keycloak-env
+      KC_SPI_CACHE_EMBEDDED__DEFAULT__MACHINE_NAME: node2
+    env_file: ../.env
+
+secrets:
+  postgres_password:
+    file: ../secrets/postgres/postgres.password
+
+#volumes:
+#  kafka0-data:
+#    driver: local
+
+networks:
+  cluster-network:
+    driver: bridge
