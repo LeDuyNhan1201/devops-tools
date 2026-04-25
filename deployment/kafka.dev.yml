@@ -1,0 +1,391 @@
+x-kafka-env:
+  &ldnhan-kafka-env
+  ########################################
+  # KRaft Cluster Identity
+  ########################################
+
+  CLUSTER_ID: ${CLUSTER_ID}
+  # Unique ID for the KRaft cluster.
+  # Must be generated once and reused across restarts.
+  # Do NOT regenerate unless you are creating a brand-new cluster.
+
+  ########################################
+  # KRaft Process Roles
+  ########################################
+
+  KAFKA_PROCESS_ROLES: 'broker,controller'
+  # This node runs both broker and controller roles (combined mode).
+  # Suitable for small clusters (1–3 nodes).
+  # For large production clusters, consider dedicated controllers.
+
+  ########################################
+  # Controller Configuration
+  ########################################
+
+  KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+  # Defines which listener is used for controller quorum communication.
+
+  KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka0:19091'
+  # Format: nodeId@host:controllerPort
+  # For 1-node cluster:
+  #   1@kafka0:19091
+  # For 3-node cluster:
+  #   1@kafka0:19091,2@kafka1:19091,3@kafka2:19091
+  #
+  # IMPORTANT:
+  # Node IDs must match KAFKA_NODE_ID on each broker.
+
+  ########################################
+  # Listener Security Configuration
+  ########################################
+
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:SSL,INTERNAL:SASL_SSL,EXTERNAL:SASL_SSL'
+  # Maps listener names to security protocols.
+  #
+  # CONTROLLER → SSL
+  # INTERNAL   → SASL_SSL (broker-to-broker communication, use for replication)
+  # EXTERNAL   → SASL_SSL (client connections)
+  #
+  # Recommended production setup:
+  # - Always encrypt traffic (SSL)
+  # - Use SASL for authentication
+
+  ########################################
+  # Inter-Broker Communication
+  ########################################
+
+  KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+  # Broker-to-broker replication traffic uses INTERNAL listener.
+  # Must match one entry in LISTENER_SECURITY_PROTOCOL_MAP.
+  #
+  # Should NOT use EXTERNAL for inter-broker traffic.
+
+  ############################
+  # Topic & General Settings #
+  ############################
+
+  KAFKA_AUTO_CREATE_TOPICS_ENABLED: 'true'
+  # Disable auto topic creation in production to avoid accidental topic creation.
+
+  KAFKA_DELETE_TOPIC_ENABLED: 'true'
+  # Allow topics to be deleted.
+
+  ############################################
+  # Default Topic Partition Count
+  ############################################
+
+  KAFKA_NUM_PARTITIONS: 3
+  # Default number of partitions for newly created topics.
+  # Applies only when topic is created WITHOUT explicitly specifying partition count.
+  #
+  # More partitions increase parallelism and throughput.
+  # Cannot decrease partition count later (only increase).
+
+  ############################
+  # Replication & Durability #
+  ############################
+
+  KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+  # For 1 broker only. Increase to 3 when cluster has 3 brokers.
+
+  KAFKA_MIN_INSYNC_REPLICAS: 1
+  # Must be <= replication factor.
+  # When scaling to 3 brokers, change to 2 for stronger durability.
+
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+  # Must be 1 in single broker.
+  # Increase to 3 when running 3 brokers.
+
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+  # Should be replication_factor - 1 in production (e.g., 2 for RF=3).
+
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  # Must match broker count.
+  # Increase to 3 when scaling cluster.
+
+  ############################
+  # Consumer Group Settings  #
+  ############################
+
+  KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 3000
+  # Wait 3 seconds before first rebalance.
+  # Prevents unnecessary rebalances during startup.
+
+  KAFKA_GROUP_MAX_SESSION_TIMEOUT_MS: 300000
+  # Maximum allowed consumer session timeout (5 minutes).
+
+  ############################
+  # Log Retention & Storage  #
+  ############################
+
+  KAFKA_LOG_RETENTION_HOURS: 168
+  # Retain messages for 7 days (168 hours).
+
+  KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+  # Check for expired segments every 5 minutes.
+
+  KAFKA_LOG_SEGMENT_BYTES: 1073741824
+  # 1GB segment size.
+
+  KAFKA_LOG_DIRS: '/var/lib/kafka/data'
+  # Persistent storage directory (DO NOT use /tmp in production).
+
+  ############################
+  # Performance & Threads    #
+  ############################
+
+  KAFKA_NUM_IO_THREADS: 8
+  # Typically equal to or slightly higher than number of CPU cores.
+
+  KAFKA_NUM_NETWORK_THREADS: 3
+  # Recommended 3 for production clusters.
+
+  KAFKA_NUM_RECOVERY_THREADS_PER_DATA_DIR: 2
+  # 2 per disk is generally good.
+
+  ############################
+  # Replication Behavior     #
+  ############################
+
+  KAFKA_REPLICA_LAG_TIME_MAX_MS: 30000
+  # Replica considered out-of-sync if lagging for 30 seconds.
+
+  ############################
+  # Offset Management        #
+  ############################
+
+  KAFKA_OFFSETS_COMMIT_TIMEOUT_MS: 10000
+  # Timeout for offset commits (10s).
+
+  KAFKA_OFFSETS_RETENTION_MINUTES: 10080
+  # Keep committed offsets for 7 days.
+
+  KAFKA_OFFSETS_TOPIC_COMPRESSION_CODEC: 4
+  # 1 = gzip
+  # 2 = snappy
+  # 3 = lz4
+  # 4 = zstd (recommended for production efficiency)
+
+  ############################
+  # Logging                  #
+  ############################
+
+  KAFKA_LOG4J_ROOT_LOGLEVEL: 'INFO'
+  # Use DEBUG only for troubleshooting.
+
+  ############################################
+  # Config Providers
+  ############################################
+
+  KAFKA_CONFIG_PROVIDERS: 'file'
+  # Enables the "file" configuration provider.
+  # Allows Kafka to load configuration values from external files dynamically.
+
+  KAFKA_CONFIG_PROVIDERS_FILE_CLASS: 'org.apache.kafka.common.config.provider.FileConfigProvider'
+  # Specifies the implementation class for the "file" provider.
+  # This class reads key-value pairs from local files.
+
+  ############################################
+  # Enable SASL Mechanism
+  ############################################
+
+  KAFKA_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER'
+  # Enables SASL OAUTHBEARER authentication.
+  # Only JWT-based OAuth2 tokens will be accepted.
+
+  KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: 'OAUTHBEARER'
+  # Brokers authenticate to each other using OAUTHBEARER.
+  # Required when INTERNAL listener uses SASL_SSL.
+
+  ############################################
+  # OAuth2 / OpenID Connect Configuration
+  ############################################
+
+  KAFKA_SASL_OAUTHBEARER_TOKEN_ENDPOINT_URL: ${KAFKA_IDP_TOKEN_ENDPOINT}
+  # OAuth2 token endpoint (used when Kafka broker needs to obtain tokens).
+  # Example: https://idp.example.com/oauth/token
+
+  KAFKA_SASL_OAUTHBEARER_JWKS_ENDPOINT_URL: ${KAFKA_IDP_JWKS_ENDPOINT}
+  # JWKS endpoint for validating JWT signatures.
+  # Example: https://idp.example.com/.well-known/jwks.json
+  # Brokers fetch public keys from here to verify tokens.
+
+  KAFKA_SASL_OAUTHBEARER_EXPECTED_AUDIENCE: ${KAFKA_IDP_EXPECTED_AUDIENCE}
+  # Expected "aud" claim in JWT.
+  # Prevents tokens issued for other services from being accepted.
+
+  KAFKA_SASL_OAUTHBEARER_EXPECTED_ISSUER: ${KAFKA_IDP_EXPECTED_ISSUER}
+  # Expected "iss" claim in JWT.
+  # Ensures tokens are issued by trusted Identity Provider.
+
+  KAFKA_SASL_OAUTHBEARER_SUB_CLAIM_NAME: ${KAFKA_IDP_SUB_CLAIM_NAME}
+  # Claim used as Kafka principal (e.g., "sub" or "client_id").
+  # This determines the Kafka username.
+
+  KAFKA_SASL_OAUTHBEARER_SCOPE_CLAIM_NAME: ${KAFKA_IDP_SCOPE_CLAIM_NAME}
+  # JWT claim that contains scopes.
+  # Can be used for custom authorization logic.
+
+  KAFKA_SASL_OAUTHBEARER_GROUPS_CLAIM_NAME: ${KAFKA_IDP_GROUP_CLAIM_NAME}
+  # JWT claim that contains groups.
+  # Can be used for custom authorization logic.
+
+  ############################################
+  # Principal & Callback Handlers
+  ############################################
+
+  KAFKA_PRINCIPAL_BUILDER_CLASS: ${KAFKA_PRINCIPAL_BUILDER_CLASS}
+  # Custom PrincipalBuilder class.
+  # Used to map JWT claims -> Kafka principal (User:<name>).
+  # Required if you want custom ACL mapping logic.
+
+  KAFKA_SASL_LOGIN_CALLBACK_HANDLER_CLASS: ${SASL_LOGIN_CALLBACK_HANDLER_CLASS}
+  # Used when Kafka acts as a client (inter-broker auth).
+  # Handles token acquisition logic.
+
+  KAFKA_SASL_SERVER_CALLBACK_HANDLER_CLASS: ${SASL_SERVER_CALLBACK_HANDLER_CLASS}
+  # Used by broker to validate incoming OAuth tokens.
+  # Handles JWT validation and authentication.
+
+  ############################################
+  # Authorization (ACL Super Users)
+  ############################################
+
+  KAFKA_SUPER_USERS: User:${KAFKA_SUPERUSER_CLIENT_ID};User:${KAFKA_SSO_CLIENT_ID}
+  # superusers bypass ACL checks.
+  # Use this ONLY for admin/service accounts.
+  # Format: User:<principal>
+
+  KAFKA_BROKER_USERS: User:${KAFKA_SUPERUSER_CLIENT_ID}
+  # Users allowed for internal broker operations.
+  # Should include broker client identity.
+
+  ############################################
+  # TLS Protocol Configuration
+  ############################################
+
+  KAFKA_SSL_ENABLED_PROTOCOLS: 'TLSv1.2'
+  # Only allow TLS 1.2 connections.
+  # Recommended: TLSv1.2 or TLSv1.3 (if supported by your JVM).
+
+  KAFKA_SSL_CIPHER_SUITES: ${SSL_CIPHER_SUITES}
+  # Defines allowed cipher suites.
+  # Should restrict to strong ciphers only (no weak/legacy algorithms).
+
+  ############################################
+  # Mutual TLS (Client Authentication)
+  ############################################
+
+  KAFKA_SSL_CLIENT_AUTH: 'required'
+  # Enforces mutual TLS (mTLS).
+  # Clients must present valid certificates trusted by the broker.
+  # Recommended for internal/inter-broker communication.
+
+  ############################################
+  # Hostname Verification
+  ############################################
+
+  KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: 'https'
+  # Enables hostname verification.
+  # Prevents MITM attacks by validating certificate CN/SAN against hostname.
+  # DO NOT disable in production.
+
+  ############################################
+  # Principal Mapping
+  ############################################
+
+  KAFKA_SSL_PRINCIPAL_MAPPING_RULES: ${SSL_PRINCIPAL_MAPPING_RULES}
+  # Maps certificate Distinguished Name (DN) to Kafka principal.
+  # Example:
+  # RULE:^CN=([a-zA-Z0-9._-]+).*$$/$$1/L,DEFAULT
+  #
+  # Extracts CN from certificate and converts to lowercase.
+  # Used for ACL authorization (User:<principal>).
+
+  ############################################
+  # Keystore (Broker Identity Certificate)
+  ############################################
+
+  KAFKA_SSL_KEYSTORE_LOCATION: '/etc/kafka/secrets/keystore.p12'
+  # Path to broker keystore containing private key + certificate.
+
+  KAFKA_SSL_KEYSTORE_TYPE: 'PKCS12'
+  # PKCS12 is recommended over JKS (more standard & secure).
+
+  KAFKA_SSL_KEYSTORE_PASSWORD: ${CERT_SECRET}
+  # Password protecting the keystore file.
+
+  KAFKA_SSL_KEY_PASSWORD: ${CERT_SECRET}
+  # Password protecting the private key entry.
+
+  # These are used when running Kafka in container images that support file-based credentials.
+  KAFKA_SSL_KEYSTORE_FILENAME: 'keystore.p12'
+  # Filename inside mounted secrets' directory.
+
+  # Passwords are supplied via KAFKA_SSL_KEYSTORE_PASSWORD and KAFKA_SSL_KEY_PASSWORD.
+
+  ############################################
+  # Truststore (Trusted CA Certificates)
+  ############################################
+
+  KAFKA_SSL_TRUSTSTORE_LOCATION: '/etc/kafka/secrets/truststore.p12'
+  # Path to truststore containing CA certificates.
+  # Used to verify client certificates (mTLS).
+
+  KAFKA_SSL_TRUSTSTORE_TYPE: 'PKCS12'
+  # Truststore format.
+
+  KAFKA_SSL_TRUSTSTORE_PASSWORD: ${CERT_SECRET}
+  # Password protecting truststore.
+
+  KAFKA_SSL_TRUSTSTORE_FILENAME: 'truststore.p12'
+  # Filename inside mounted secrets' directory.
+
+  # Password is supplied via KAFKA_SSL_TRUSTSTORE_PASSWORD.
+
+  # Internal Listener
+  KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER'
+  KAFKA_LISTENER_NAME_INTERNAL_OAUTHBEARER_SASL_JAAS_CONFIG: >
+    org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+    oauth.valid.issuer.uri="${KAFKA_IDP_EXPECTED_ISSUER}"
+    oauth.jwks.endpoint.uri="${KAFKA_IDP_JWKS_ENDPOINT}"
+    oauth.expected.audience="${KAFKA_IDP_EXPECTED_AUDIENCE}"
+    oauth.username.claim="${KAFKA_IDP_SUB_CLAIM_NAME}"
+    oauth.check.audience=true
+    oauth.check.issuer=true ;
+
+  # Controller Listener is extended from base configuration, so it inherits the same SASL/OAuth settings
+
+  # External listener
+  KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER'
+  KAFKA_LISTENER_NAME_EXTERNAL_OAUTHBEARER_SASL_JAAS_CONFIG: >
+    org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+    oauth.valid.issuer.uri="${KAFKA_IDP_EXPECTED_ISSUER}"
+    oauth.jwks.endpoint.uri="${KAFKA_IDP_JWKS_ENDPOINT}"
+    oauth.expected.audience="${KAFKA_IDP_EXPECTED_AUDIENCE}"
+    oauth.username.claim="${KAFKA_IDP_SUB_CLAIM_NAME}"
+    oauth.fallback.username.claim="preferred_username"
+    oauth.check.audience=true
+    oauth.check.issuer=true
+    oauth.clock.skew.seconds=60
+    oauth.jwks.refresh.seconds=300
+    oauth.jwks.expiry.seconds=3600
+    oauth.jwks.refresh.min.pause.seconds=1
+    oauth.ssl.endpoint.identification.algorithm="https"
+    oauth.ssl.keystore.type="PKCS12"
+    oauth.ssl.keystore.location="/etc/kafka/secrets/keystore.p12"
+    oauth.ssl.keystore.password="${CERT_SECRET}"
+    oauth.ssl.key.password="${CERT_SECRET}"
+    oauth.ssl.truststore.type="PKCS12"
+    oauth.ssl.truststore.location="/etc/kafka/secrets/truststore.p12"
+    oauth.ssl.truststore.password="${CERT_SECRET}";
+
+  # metrics reporter
+  KAFKA_JMX_PORT: 9101
+  KAFKA_JMX_HOSTNAME: localhost
+  KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka0 -Dcom.sun.management.jmxremote.rmi.port=9101
+
+  EXTRA_ARGS: "-javaagent:/usr/bin/jmx/jmx_prometheus_javaagent.jar=1234:/usr/bin/jmx/exporter.yml"
+  KAFKA_OPTS: |
+    -Dorg.apache.kafka.sasl.oauthbearer.allowed.urls=${KAFKA_IDP_JWKS_ENDPOINT},${KAFKA_IDP_TOKEN_ENDPOINT},${KAFKA_IDP_AUTH_ENDPOINT},${KAFKA_IDP_AUTH_DEVICE_ENDPOINT}
+  KAFKA_HEAP_OPTS: "-Xms${BROKER_HEAP} -Xmx${BROKER_HEAP}"

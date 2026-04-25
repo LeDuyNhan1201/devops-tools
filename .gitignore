@@ -38,4 +38,6 @@ replay_pid*
 **/env.properties
 **/.env
 
+PROMPT.md
+
 
