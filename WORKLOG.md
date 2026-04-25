@@ -12,10 +12,10 @@
 Task: Audit Kafka SSL scripts and `kafka.dev.yml`
 Done:
 - `services/kafka/templates/server.template`: switched Kafka OAuth placeholders to the existing canonical vars `KAFKA_IDP_EXPECTED_AUDIENCE` and `KAFKA_IDP_SUB_CLAIM_NAME`
-- `deployment/kafka.dev.yml`: removed references to nonexistent `creds.txt` password files and corrected `KAFKA_IDP_AUTH_DEVICE_ENDPOINT` usage in `KAFKA_OPTS`
+- `deployment/kafka.dev.yml`: removed `creds.txt` password-file references because the local secret generation flow creates `secrets/kafka/kafka.secret`, not `creds.txt`; also corrected `KAFKA_IDP_AUTH_DEVICE_ENDPOINT` usage in `KAFKA_OPTS`
 - `environments/local/kafka/configs/server.properties`: regenerated from the fixed script env so the checked-in local Kafka server config now contains concrete audience and principal values
 Impact:
-- prevents broken Kafka OAuth configuration, avoids runtime references to missing SSL credential files, and fixes an empty allowed-URLs entry in Kafka OAuth startup options
+- prevents broken Kafka OAuth configuration, avoids runtime references to a mismatched credential filename, and fixes an empty allowed-URLs entry in Kafka OAuth startup options
 Next:
 - decide whether `KAFKA_SSL_CLIENT_AUTH: 'required'` is intentional; the current Kafka client template is truststore-only, so strict mTLS would still require a client keystore path/config before those clients can connect
 
