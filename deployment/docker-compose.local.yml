@@ -50,7 +50,7 @@ services:
 #      retries: 3
 #      start_period: 10s
     volumes:
-      - ../envoy/envoy.dev.yaml:/etc/envoy/envoy.yaml
+      - ../environments/local/envoy/envoy.yaml:/etc/envoy/envoy.yaml
       - ../secrets/certs/envoy:/etc/envoy/certificates
 
   # --------- Postgres ---------
@@ -58,7 +58,7 @@ services:
 #    build:
 #      args:
 #        POSTGRES_TAG: ${POSTGRES_TAG:-latest}
-#      context: ../postgres
+#      context: ../services/postgres
     image: ${NAMESPACE}/${REPOSITORY_NAME}/postgres:${POSTGRES_TAG:-latest}
     container_name: postgres
     ports:
@@ -78,9 +78,9 @@ services:
       start_period: 30s
     restart: always
     volumes:
-      - ../postgres/config/postgres.conf:/etc/postgres/postgres.conf:ro
-      - ../postgres/config/pg_hba.conf:/etc/postgres/pg_hba.conf:ro
-      - ../postgres/init-db:/docker-entrypoint-initdb.d:ro
+      - ../services/postgres/config/postgres.conf:/etc/postgres/postgres.conf:ro
+      - ../environments/local/postgres/config/pg_hba.conf:/etc/postgres/pg_hba.conf:ro
+      - ../environments/local/postgres/init-db:/docker-entrypoint-initdb.d:ro
       - ../data/pgdata:/var/lib/postgresql
     secrets:
       - postgres_password
@@ -113,8 +113,8 @@ services:
       retries: 3
     restart: always # unless-stopped
     volumes:
-      - ../keycloak/import:/opt/keycloak/data/import
-      - ../keycloak/export:/opt/keycloak/data/export
+      - ../environments/local/keycloak/import:/opt/keycloak/data/import
+      - ../environments/local/keycloak/export:/opt/keycloak/data/export
 #      - ../keycloak/config/cache-ispn.xml:/opt/keycloak/conf/cache-ispn.xml
     environment:
       <<: *ldnhan-keycloak-env
@@ -142,8 +142,8 @@ services:
       retries: 3
     restart: always # unless-stopped
     volumes:
-      - ../keycloak/import:/opt/keycloak/data/import
-      - ../keycloak/export:/opt/keycloak/data/export
+      - ../environments/local/keycloak/import:/opt/keycloak/data/import
+      - ../environments/local/keycloak/export:/opt/keycloak/data/export
 #      - ../keycloak/config/cache-ispn.xml:/opt/keycloak/conf/cache-ispn.xml
     environment:
       <<: *ldnhan-keycloak-env
@@ -171,8 +171,8 @@ services:
       retries: 3
     restart: always # unless-stopped
     volumes:
-      - ../keycloak/import:/opt/keycloak/data/import
-      - ../keycloak/export:/opt/keycloak/data/export
+      - ../environments/local/keycloak/import:/opt/keycloak/data/import
+      - ../environments/local/keycloak/export:/opt/keycloak/data/export
 #      - ../keycloak/config/cache-ispn.xml:/opt/keycloak/conf/cache-ispn.xml
     environment:
       <<: *ldnhan-keycloak-env

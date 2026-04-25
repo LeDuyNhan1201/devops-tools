@@ -3,6 +3,9 @@ VERSION:=1.0.0
 MODE:=dev
 RUN_ENV:=local
 KEYCLOAK_HOSTNAME:=keycloak.leduynhan1201.dev
+MAKEFILE_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+PROJECT_ROOT:=$(abspath $(MAKEFILE_DIR)/..)
+SCRIPT_DIR:=$(PROJECT_ROOT)/scripts/$(RUN_ENV)
 
 dev-auth:
 	docker exec -it -uroot auth-service bash -c 'cd /app && ./gradlew quarkusDev -DdebugHost=0.0.0.0 -DskipTests';
@@ -34,7 +37,7 @@ prepare:
 	@echo "Preparing environment..."
 	@sudo apt-get update -y
 	@sudo apt-get install -y make openjdk-17-jdk
-	@find scripts/$(RUN_ENV) -type f -name "*.sh" -exec chmod +x {} \;
+	@find $(SCRIPT_DIR) -type f -name "*.sh" -exec chmod +x {} \;
 
 renew-certs:
 	@if [ -z "$(SERVER_NAME)" ]; then \
@@ -42,33 +45,33 @@ renew-certs:
 		exit 1; \
 	fi
 	@echo "Generating $(SERVER_NAME) certificates..."
-	@./scripts/$(RUN_ENV)/renew_certs.sh $(MODE) $(SERVER_NAME)
+	@$(SCRIPT_DIR)/renew_certs.sh $(MODE) $(SERVER_NAME)
 
 rebuild-images:
 	@echo "Rebuild local images..."
-	@./scripts/$(RUN_ENV)/rebuild_images.sh $(MODE)
+	@$(SCRIPT_DIR)/rebuild_images.sh $(MODE)
 
 .PHONY: init
 init:
 	@echo "Initializing environment..."
-	@./scripts/$(RUN_ENV)/init.sh $(MODE)
-	@sudo cp secrets/certs/ca/ca.crt /usr/local/share/ca-certificates/ldnhanCA.crt
+	@$(SCRIPT_DIR)/init.sh $(MODE)
+	@sudo cp $(PROJECT_ROOT)/secrets/certs/ca/ca.crt /usr/local/share/ca-certificates/ldnhanCA.crt
 	@sudo update-ca-certificates
 
 .PHONY: clean
 clean:
 	@echo "Cleaning all..."
-	@./scripts/$(RUN_ENV)/clean.sh $(MODE)
+	@$(SCRIPT_DIR)/clean.sh $(MODE)
 
 .PHONY: start
 start:
 	@echo "Starting containers..."
-	@./scripts/$(RUN_ENV)/start.sh $(MODE)
+	@$(SCRIPT_DIR)/start.sh $(MODE)
 
 .PHONY: stop
 stop:
 	@echo "Stopping containers..."
-	@./scripts/$(RUN_ENV)/stop.sh $(MODE)
+	@$(SCRIPT_DIR)/stop.sh $(MODE)
 
 check-connect:
 	@openssl s_client -connect $(KEYCLOAK_HOSTNAME):443 -servername $(KEYCLOAK_HOSTNAME)
