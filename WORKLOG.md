@@ -8,6 +8,19 @@
 
 ## Recent History
 
+### [2026-04-26 22:32]
+Task: Align Kafka OAUTHBEARER validation settings with the learned broker property set
+Done:
+- `deployment/kafka.dev.yml`: added broker-level `sasl.oauthbearer.clock.skew.seconds` and `sasl.oauthbearer.jwks.endpoint.refresh.ms` env wiring, reused the same values in the EXTERNAL listener JAAS block, and corrected misleading comments about controller and INTERNAL auth behavior
+- `scripts/local/helper/env_config.sh`: added local defaults for Kafka OAuth clock skew and JWKS refresh intervals
+- `scripts/local/helper/functions.sh`: added the new OAuth timing vars to generated `.env`
+- `services/kafka/templates/server.template`: corrected the broker property name from `sasl.oauthbearer.jwks.endpoint.uri` to `sasl.oauthbearer.jwks.endpoint.url` and added the missing native broker claim-mapping / timing properties
+- `environments/local/kafka/configs/server.properties`: regenerated the checked-in local broker reference config to match the corrected template
+Impact:
+- prevents Kafka broker OAuth validation from relying on an incorrect reference property name and keeps the broker-level OAUTHBEARER validation settings aligned with the listener JAAS behavior already in use
+Next:
+- leave Kafka client token-refresh properties on Kafka defaults unless a shorter token lifetime or IdP-specific refresh issue requires explicit tuning
+
 ### [2026-04-26 13:34]
 Task: Replace INTERNAL delegation-token placeholders with best-practice inter-broker SCRAM credentials
 Done:

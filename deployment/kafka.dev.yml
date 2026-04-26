@@ -194,10 +194,10 @@ x-kafka-env:
   ############################################
 
   KAFKA_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER,SCRAM-SHA-256'
-  # Enables the broker mechanisms needed for external OAUTHBEARER clients and internal SCRAM-based delegation-token auth.
+  # Enables the broker mechanisms needed for external OAUTHBEARER clients and internal SCRAM-based inter-broker auth.
 
   KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: 'SCRAM-SHA-256'
-  # Brokers authenticate to each other using SCRAM-based delegation-token credentials.
+  # Brokers authenticate to each other using SCRAM credentials.
   # Required when INTERNAL listener uses SASL_SSL.
 
   ############################################
@@ -220,6 +220,12 @@ x-kafka-env:
   KAFKA_SASL_OAUTHBEARER_EXPECTED_ISSUER: ${KAFKA_IDP_EXPECTED_ISSUER}
   # Expected "iss" claim in JWT.
   # Ensures tokens are issued by trusted Identity Provider.
+
+  KAFKA_SASL_OAUTHBEARER_CLOCK_SKEW_SECONDS: ${KAFKA_IDP_CLOCK_SKEW_SECONDS}
+  # Allowed clock drift between the broker and IdP when validating JWT timestamps.
+
+  KAFKA_SASL_OAUTHBEARER_JWKS_ENDPOINT_REFRESH_MS: ${KAFKA_IDP_JWKS_REFRESH_MS}
+  # Refresh interval for the broker JWKS cache.
 
   KAFKA_SASL_OAUTHBEARER_SUB_CLAIM_NAME: ${KAFKA_IDP_SUB_CLAIM_NAME}
   # Claim used as Kafka principal (e.g., "sub" or "client_id").
@@ -347,7 +353,7 @@ x-kafka-env:
     username="${KAFKA_INTERNAL_SCRAM_USERNAME}"
     password="${KAFKA_INTERNAL_SCRAM_PASSWORD}";
 
-  # Controller Listener is extended from base configuration, so it inherits the same SASL/OAuth settings
+  # Controller listener is SSL-only here, so it inherits the base SSL settings unless explicitly overridden.
 
   # External listener
   KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER'
@@ -361,8 +367,8 @@ x-kafka-env:
     oauth.fallback.username.claim="preferred_username"
     oauth.check.audience=true
     oauth.check.issuer=true
-    oauth.clock.skew.seconds=60
-    oauth.jwks.refresh.seconds=300
+    oauth.clock.skew.seconds="${KAFKA_IDP_CLOCK_SKEW_SECONDS}"
+    oauth.jwks.refresh.seconds="${KAFKA_IDP_JWKS_REFRESH_SECONDS}"
     oauth.jwks.expiry.seconds=3600
     oauth.jwks.refresh.min.pause.seconds=1
     oauth.ssl.endpoint.identification.algorithm="https"
