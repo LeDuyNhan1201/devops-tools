@@ -8,6 +8,42 @@
 
 ## Recent History
 
+### [2026-04-26 13:34]
+Task: Replace INTERNAL delegation-token placeholders with best-practice inter-broker SCRAM credentials
+Done:
+- `deployment/kafka.dev.yml`: kept `SCRAM-SHA-256` on the INTERNAL listener and inter-broker path, but replaced the invalid delegation-token JAAS fields with a standard `ScramLoginModule` username/password config for broker-to-broker auth
+- `scripts/local/helper/env_config.sh`: replaced `KAFKA_INTERNAL_DELEGATION_TOKEN_ID` and `KAFKA_INTERNAL_DELEGATION_TOKEN_HMAC` with concrete local dev values for `KAFKA_INTERNAL_SCRAM_USERNAME` and `KAFKA_INTERNAL_SCRAM_PASSWORD`
+- `scripts/local/helper/functions.sh`: updated generated `.env` output to carry the new INTERNAL SCRAM vars
+- `README.md`: corrected the Kafka note so INTERNAL broker auth is documented as SCRAM bootstrap auth, not delegation-token auth
+Impact:
+- removes an invalid inter-broker token-auth bootstrap path and aligns the INTERNAL listener with Kafka’s documented pre-start SCRAM credential flow
+Next:
+- ensure the INTERNAL SCRAM user is created in Kafka storage/bootstrap before starting the broker, since config alone does not create SCRAM credentials
+
+### [2026-04-26 13:19]
+Task: Switch INTERNAL broker SASL to delegation-token SCRAM while leaving other listeners unchanged
+Done:
+- `deployment/kafka.dev.yml`: changed broker-wide enabled mechanisms to `OAUTHBEARER,SCRAM-SHA-256`, switched `KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL` to `SCRAM-SHA-256`, replaced the INTERNAL listener OAUTHBEARER JAAS config with listener-scoped `ScramLoginModule` token-auth config, and removed the now-wrong global OAuth callback handler wiring from the broker env
+- `scripts/local/helper/env_config.sh`: added `KAFKA_INTERNAL_DELEGATION_TOKEN_ID` and `KAFKA_INTERNAL_DELEGATION_TOKEN_HMAC` so local `.env` generation can carry the delegation-token credentials needed by the INTERNAL listener
+- `scripts/local/helper/functions.sh`: added the new INTERNAL delegation-token vars to generated `.env`
+- `README.md`: documented that EXTERNAL stays OAUTHBEARER while INTERNAL now requires delegation-token SCRAM credentials in `env_config.sh`
+Impact:
+- aligns the INTERNAL listener and inter-broker mechanism with delegation-token SCRAM requirements while leaving the EXTERNAL OAUTHBEARER listener unchanged
+Next:
+- populate `KAFKA_INTERNAL_DELEGATION_TOKEN_ID` and `KAFKA_INTERNAL_DELEGATION_TOKEN_HMAC` with real delegation-token values before starting Kafka, or the INTERNAL broker auth path will not succeed
+
+### [2026-04-26 13:07]
+Task: Add SCRAM/delegation-token prerequisite knowledge and local Kafka secret-key plumbing
+Done:
+- `learn/kafka_sasl_learned.md`: merged the SCRAM summary into the learned note, including credential storage, lifecycle commands, TLS guidance, and callback-handler caveats
+- `scripts/local/helper/env_config.sh`: added `KAFKA_DELEGATION_TOKEN_SECRET_KEY` derived from the local dev secret so delegation-token support has a shared broker/controller key
+- `scripts/local/helper/functions.sh`: added `KAFKA_DELEGATION_TOKEN_SECRET_KEY` to generated `.env` output
+- `deployment/kafka.dev.yml`: wired `KAFKA_DELEGATION_TOKEN_SECRET_KEY` into the Kafka broker environment
+Impact:
+- prevents delegation-token broker setup from missing its required shared secret while keeping the current listener mechanisms unchanged until real SCRAM/token credentials are available
+Next:
+- if internal broker auth should actually switch to delegation tokens, create real SCRAM/delegation token credentials first, then replace the INTERNAL listener OAUTHBEARER JAAS/mechanism settings with SCRAM token-auth settings
+
 ### [2026-04-26 12:38]
 Task: Restore Kafka client mTLS compatibility with `KAFKA_SSL_CLIENT_AUTH='required'`
 Done:

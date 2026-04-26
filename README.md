@@ -107,6 +107,7 @@ Direct script entrypoints:
   - `environments/local/kafka/configs/client.properties`
 - Generated Kafka cert folders now also expose stable `keystore.p12` and `truststore.p12` aliases alongside the service-specific PKCS12 filenames so Kafka mounts and generated configs resolve the same paths.
 - The generated Kafka client properties now assume mTLS-capable `SASL_SSL`: clients need both `keystore.p12` and `truststore.p12` mounted at `/etc/kafka/secrets/` when connecting to brokers with `KAFKA_SSL_CLIENT_AUTH='required'`.
+- `deployment/kafka.dev.yml` keeps the EXTERNAL listener on OAUTHBEARER and uses `SCRAM-SHA-256` for the INTERNAL inter-broker path. Set `KAFKA_INTERNAL_SCRAM_USERNAME` and `KAFKA_INTERNAL_SCRAM_PASSWORD` in `scripts/local/helper/env_config.sh`, and pre-create that SCRAM identity before broker startup as part of Kafka storage/bootstrap setup.
 - Local runtime configs live under `environments/local/`:
   - `envoy/envoy.yaml`
   - `postgres/config/` and `postgres/init-db/`

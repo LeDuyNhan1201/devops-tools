@@ -64,6 +64,9 @@ export KAFKA_AUTHORIZER_CLASS=io.strimzi.kafka.oauth.server.authorizer.KeycloakA
 export KAFKA_PRINCIPAL_BUILDER_CLASS=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
 export SASL_LOGIN_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 export SASL_SERVER_CALLBACK_HANDLER_CLASS=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+export KAFKA_DELEGATION_TOKEN_SECRET_KEY="${CERT_SECRET}"
+export KAFKA_INTERNAL_SCRAM_USERNAME="broker"
+export KAFKA_INTERNAL_SCRAM_PASSWORD='@N120103#-broker'
 
 # Client configurations
 export KAFKA_SUPERUSER_CLIENT_ID=kafka

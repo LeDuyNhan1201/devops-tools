@@ -52,6 +52,18 @@
   - implement `AuthenticateCallbackHandler` on the broker validator side
   - do not rely on Kafka’s default unsecured JWT behavior in production
 
+- SCRAM notes from the latest summary:
+  - SCRAM follows RFC 5802 and Kafka supports `SCRAM-SHA-256` and `SCRAM-SHA-512`
+  - SCRAM credentials store `salt`, `iterations`, `StoredKey`, and `ServerKey` in the metadata log
+  - by default, the SCRAM username becomes the authenticated principal
+  - SCRAM should be paired with `SASL_SSL` to prevent interception and dictionary attacks
+  - Kafka enforces a minimum of 4096 iterations
+  - since Kafka 2.0, `sasl.server.callback.handler.class` can override the default credential store
+
+- SCRAM credential management from the latest summary:
+  - create initial inter-broker SCRAM credentials before startup with `kafka-storage.sh format ... --add-scram`
+  - create, alter, describe, or delete running-client credentials with `kafka-configs.sh`
+
 ## Authentication using SASL/OAUTHBEARER
 
 - Purpose:
@@ -209,6 +221,7 @@ sasl.enabled.mechanisms=GSSAPI,PLAIN,SCRAM-SHA-256
 - Delegation-token authentication uses SASL/SCRAM.
 - Requirement:
   - the cluster must already have SASL/SCRAM enabled
+  - SCRAM credentials for brokers can be created during initial storage formatting, while running-client SCRAM credentials can be managed with `kafka-configs.sh`
 - Credential mapping:
   - token ID is the username
   - token HMAC is the password
@@ -241,6 +254,7 @@ sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule require
 - `sasl.jaas.config` is the most specific JAAS source and overrides static JAAS file entries; each such entry supports one login module.
 - Brokers can support multiple SASL mechanisms at once with `sasl.enabled.mechanisms`; choose the broker-to-broker mechanism with `sasl.mechanism.inter.broker.protocol`.
 - Listener-scoped JAAS for multiple mechanisms uses `listener.name.{listenerName}.{saslMechanism}.sasl.jaas.config`.
+- SCRAM support in Kafka centers on `SCRAM-SHA-256` and `SCRAM-SHA-512`, stores credential material in the metadata log, and should be used with `SASL_SSL`.
 - OAUTHBEARER’s default unsecured JWT behavior is non-production; production requires `SASL_SSL`, custom handlers, and a real IdP.
 - OAUTHBEARER client behavior in the notes covers token endpoint config, login callback handling, supported grant styles, and token refresh settings.
 - Delegation tokens are lightweight SASL/SCRAM-based credentials, but they still depend on a secure initial authentication path and careful shared-secret handling.

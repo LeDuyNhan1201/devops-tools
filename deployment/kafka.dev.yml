@@ -193,12 +193,11 @@ x-kafka-env:
   # Enable SASL Mechanism
   ############################################
 
-  KAFKA_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER'
-  # Enables SASL OAUTHBEARER authentication.
-  # Only JWT-based OAuth2 tokens will be accepted.
+  KAFKA_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER,SCRAM-SHA-256'
+  # Enables the broker mechanisms needed for external OAUTHBEARER clients and internal SCRAM-based delegation-token auth.
 
-  KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: 'OAUTHBEARER'
-  # Brokers authenticate to each other using OAUTHBEARER.
+  KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: 'SCRAM-SHA-256'
+  # Brokers authenticate to each other using SCRAM-based delegation-token credentials.
   # Required when INTERNAL listener uses SASL_SSL.
 
   ############################################
@@ -243,13 +242,8 @@ x-kafka-env:
   # Used to map JWT claims -> Kafka principal (User:<name>).
   # Required if you want custom ACL mapping logic.
 
-  KAFKA_SASL_LOGIN_CALLBACK_HANDLER_CLASS: ${SASL_LOGIN_CALLBACK_HANDLER_CLASS}
-  # Used when Kafka acts as a client (inter-broker auth).
-  # Handles token acquisition logic.
-
-  KAFKA_SASL_SERVER_CALLBACK_HANDLER_CLASS: ${SASL_SERVER_CALLBACK_HANDLER_CLASS}
-  # Used by broker to validate incoming OAuth tokens.
-  # Handles JWT validation and authentication.
+  KAFKA_DELEGATION_TOKEN_SECRET_KEY: ${KAFKA_DELEGATION_TOKEN_SECRET_KEY}
+  # Shared secret required for delegation token validation across the broker/controller quorum.
 
   ############################################
   # Authorization (ACL Super Users)
@@ -347,16 +341,11 @@ x-kafka-env:
   # Password is supplied via KAFKA_SSL_TRUSTSTORE_PASSWORD.
 
   # Internal Listener
-  KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER'
-  KAFKA_LISTENER_NAME_INTERNAL_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: ${SASL_SERVER_CALLBACK_HANDLER_CLASS}
-  KAFKA_LISTENER_NAME_INTERNAL_OAUTHBEARER_SASL_JAAS_CONFIG: >
-    org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
-    oauth.valid.issuer.uri="${KAFKA_IDP_EXPECTED_ISSUER}"
-    oauth.jwks.endpoint.uri="${KAFKA_IDP_JWKS_ENDPOINT}"
-    oauth.expected.audience="${KAFKA_IDP_EXPECTED_AUDIENCE}"
-    oauth.username.claim="${KAFKA_IDP_SUB_CLAIM_NAME}"
-    oauth.check.audience=true
-    oauth.check.issuer=true ;
+  KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: 'SCRAM-SHA-256'
+  KAFKA_LISTENER_NAME_INTERNAL_SCRAM_SHA_256_SASL_JAAS_CONFIG: >
+    org.apache.kafka.common.security.scram.ScramLoginModule required
+    username="${KAFKA_INTERNAL_SCRAM_USERNAME}"
+    password="${KAFKA_INTERNAL_SCRAM_PASSWORD}";
 
   # Controller Listener is extended from base configuration, so it inherits the same SASL/OAuth settings
 
