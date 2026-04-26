@@ -390,7 +390,7 @@ x-kafka-env:
 #  KAFKA_JMX_HOSTNAME: localhost
 #  KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka0 -Dcom.sun.management.jmxremote.rmi.port=9101
 #
-#  EXTRA_ARGS: "-javaagent:/usr/bin/jmx/jmx_prometheus_javaagent.jar=2222 :/usr/bin/jmx/exporter.yml"
+#  EXTRA_ARGS: "-javaagent:/usr/bin/jmx/jmx_prometheus_javaagent.jar=2222:/usr/bin/jmx/exporter.yml"
 
   KAFKA_OPTS: |
     -Dorg.apache.kafka.sasl.oauthbearer.allowed.urls=${KAFKA_IDP_JWKS_ENDPOINT},${KAFKA_IDP_TOKEN_ENDPOINT},${KAFKA_IDP_AUTH_ENDPOINT},${KAFKA_IDP_AUTH_DEVICE_ENDPOINT}
