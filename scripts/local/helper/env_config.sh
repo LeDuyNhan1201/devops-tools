@@ -2,9 +2,9 @@ export NAMESPACE="leduynhan1201"
 export REPOSITORY_NAME="devops-tool"
 
 export KEYCLOAK_TAG=nightly # https://quay.io/repository/keycloak/keycloak?tab=tags
-export POSTGRES_TAG=17.9-alpine3.22 # https://hub.docker.com/_/postgres/tags
+export POSTGRES_TAG=alpine3.23 # https://hub.docker.com/_/postgres/tags
 export CONFLUENT_TAG=7.7.7 # https://hub.docker.com/r/confluentinc/cp-kafka/tags
-export APACHE_KAFKA_TAG=4.2.1-rc1 # https://hub.docker.com/r/apache/kafka-native/tags
+export APACHE_KAFKA_TAG=4.2.1-rc3 # https://hub.docker.com/r/apache/kafka-native/tags
 export ENVOY_TAG=tools-dev # https://hub.docker.com/r/envoyproxy/envoy/tags
 
 LOCAL_IP=$(hostname -I | awk '{print $1}')
