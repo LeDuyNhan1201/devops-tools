@@ -206,6 +206,10 @@ EOF
     -storetype PKCS12 \
     -storepass "$cert_secret"
 
+  # Provide stable Kafka-friendly aliases alongside service-specific filenames.
+  ln -sf "$alias_name.keystore.p12" "$cert_dir/keystore.p12"
+  ln -sf "$alias_name.truststore.p12" "$cert_dir/truststore.p12"
+
   # ============================================================
   # === Permissions ============================================
   # ============================================================

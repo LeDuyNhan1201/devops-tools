@@ -8,6 +8,29 @@
 
 ## Recent History
 
+### [2026-04-26 12:38]
+Task: Restore Kafka client mTLS compatibility with `KAFKA_SSL_CLIENT_AUTH='required'`
+Done:
+- `services/kafka/templates/client.template`: added client-side `ssl.keystore.*` and `ssl.key.password` so the generated OAUTHBEARER client config can present a certificate over `SASL_SSL`
+- `environments/local/kafka/configs/client.properties`: regenerated the checked-in local Kafka client config with the same keystore settings
+- `deployment/kafka.dev.yml`: restored `KAFKA_SSL_CLIENT_AUTH: 'required'` now that the checked-in client config is mTLS-capable again
+- `README.md`: documented that Kafka clients now need both `keystore.p12` and `truststore.p12` mounted at `/etc/kafka/secrets/` when using the generated client config against brokers that require client certificates
+Impact:
+- prevents Kafka TLS handshake failure when brokers require client certificates and the generated client config is used as the connection baseline
+Next:
+- use a client certificate directory that exposes `keystore.p12` and `truststore.p12` at `/etc/kafka/secrets/` wherever `environments/local/kafka/configs/client.properties` is consumed
+
+### [2026-04-26 12:27]
+Task: Audit Kafka SASL scripts and `kafka.dev.yml` against learned notes
+Done:
+- `scripts/local/helper/generate_certs.sh`: added stable `keystore.p12` and `truststore.p12` symlinks beside the service-specific PKCS12 outputs so Kafka mounts and generated configs resolve the expected paths on repeat runs
+- `deployment/kafka.dev.yml`: changed the Kafka config bind mount to `environments/local/kafka/configs`, removed the obsolete `kafka.secret` file mount that conflicted with the cert directory mount, and added listener-scoped OAUTHBEARER server callback handler env vars
+- `README.md`: documented the generated Kafka PKCS12 aliases used by the Kafka mounts/configs
+Impact:
+- prevents missing keystore/truststore path failures and removes a dead/conflicting secret mount while keeping the Kafka OAUTHBEARER listener wiring explicit
+Next:
+- rerun `make -f deployment/Makefile init` or `make -f deployment/Makefile renew-certs SERVER_NAME=kafka0` before using `deployment/kafka.dev.yml` so the Kafka PKCS12 aliases are present in the generated cert directory
+
 ### [2026-04-25 19:48]
 Task: Audit Kafka SSL scripts and `kafka.dev.yml`
 Done:

@@ -105,6 +105,8 @@ Direct script entrypoints:
 - Generated Kafka config targets:
   - `environments/local/kafka/configs/server.properties`
   - `environments/local/kafka/configs/client.properties`
+- Generated Kafka cert folders now also expose stable `keystore.p12` and `truststore.p12` aliases alongside the service-specific PKCS12 filenames so Kafka mounts and generated configs resolve the same paths.
+- The generated Kafka client properties now assume mTLS-capable `SASL_SSL`: clients need both `keystore.p12` and `truststore.p12` mounted at `/etc/kafka/secrets/` when connecting to brokers with `KAFKA_SSL_CLIENT_AUTH='required'`.
 - Local runtime configs live under `environments/local/`:
   - `envoy/envoy.yaml`
   - `postgres/config/` and `postgres/init-db/`

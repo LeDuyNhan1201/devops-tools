@@ -2,6 +2,10 @@
 # TLS TO BROKER
 ############################
 security.protocol=SASL_SSL
+ssl.keystore.type=PKCS12
+ssl.keystore.location=/etc/kafka/secrets/keystore.p12
+ssl.keystore.password=${CERT_SECRET}
+ssl.key.password=${CERT_SECRET}
 ssl.truststore.type=PKCS12
 ssl.truststore.location=/etc/kafka/secrets/truststore.p12
 ssl.truststore.password=${CERT_SECRET}

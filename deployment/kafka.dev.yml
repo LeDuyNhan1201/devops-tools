@@ -130,6 +130,10 @@ x-kafka-env:
   KAFKA_LOG_DIRS: '/var/lib/kafka/data'
   # Persistent storage directory (DO NOT use /tmp in production).
 
+  KAFKA_PLUGIN_PATH: '/opt/kafka/plugins'
+  # Directory for custom plugins (e.g., connectors, authorizers).
+  # Must be mounted with appropriate permissions.
+
   ############################
   # Performance & Threads    #
   ############################
@@ -279,7 +283,6 @@ x-kafka-env:
   KAFKA_SSL_CLIENT_AUTH: 'required'
   # Enforces mutual TLS (mTLS).
   # Clients must present valid certificates trusted by the broker.
-  # Recommended for internal/inter-broker communication.
 
   ############################################
   # Hostname Verification
@@ -345,6 +348,7 @@ x-kafka-env:
 
   # Internal Listener
   KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER'
+  KAFKA_LISTENER_NAME_INTERNAL_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: ${SASL_SERVER_CALLBACK_HANDLER_CLASS}
   KAFKA_LISTENER_NAME_INTERNAL_OAUTHBEARER_SASL_JAAS_CONFIG: >
     org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
     oauth.valid.issuer.uri="${KAFKA_IDP_EXPECTED_ISSUER}"
@@ -358,6 +362,7 @@ x-kafka-env:
 
   # External listener
   KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: 'OAUTHBEARER'
+  KAFKA_LISTENER_NAME_EXTERNAL_OAUTHBEARER_SASL_SERVER_CALLBACK_HANDLER_CLASS: ${SASL_SERVER_CALLBACK_HANDLER_CLASS}
   KAFKA_LISTENER_NAME_EXTERNAL_OAUTHBEARER_SASL_JAAS_CONFIG: >
     org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
     oauth.valid.issuer.uri="${KAFKA_IDP_EXPECTED_ISSUER}"
@@ -381,11 +386,53 @@ x-kafka-env:
     oauth.ssl.truststore.password="${CERT_SECRET}";
 
   # metrics reporter
-  KAFKA_JMX_PORT: 9101
-  KAFKA_JMX_HOSTNAME: localhost
-  KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka0 -Dcom.sun.management.jmxremote.rmi.port=9101
+#  KAFKA_JMX_PORT: 9102
+#  KAFKA_JMX_HOSTNAME: localhost
+#  KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka0 -Dcom.sun.management.jmxremote.rmi.port=9101
+#
+#  EXTRA_ARGS: "-javaagent:/usr/bin/jmx/jmx_prometheus_javaagent.jar=2222 :/usr/bin/jmx/exporter.yml"
 
-  EXTRA_ARGS: "-javaagent:/usr/bin/jmx/jmx_prometheus_javaagent.jar=1234:/usr/bin/jmx/exporter.yml"
   KAFKA_OPTS: |
     -Dorg.apache.kafka.sasl.oauthbearer.allowed.urls=${KAFKA_IDP_JWKS_ENDPOINT},${KAFKA_IDP_TOKEN_ENDPOINT},${KAFKA_IDP_AUTH_ENDPOINT},${KAFKA_IDP_AUTH_DEVICE_ENDPOINT}
   KAFKA_HEAP_OPTS: "-Xms${BROKER_HEAP} -Xmx${BROKER_HEAP}"
+
+services:
+  # --------- Kafka Brokers ---------
+  kafka0:
+    image: apache/kafka-native:${APACHE_KAFKA_TAG:-latest}
+    container_name: kafka0
+    depends_on:
+      wait-for-keycloak:
+        condition: service_completed_successfully
+#      prometheus:
+#        condition: service_healthy
+    ports:
+      - "9101:9102"
+      - "9091:9092"
+#      - "1111:2222"
+    networks:
+      - devops-tool-network
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "kafka0", "9092" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: always # unless-stopped
+    volumes:
+      - ./data/kafka0/data:/var/lib/kafka/data
+      - ./data/kafka0/logs:/opt/kafka/logs
+      - ./data/kafka0/configs:/opt/kafka/config
+      - ../environments/local/kafka/configs:/tmp/configs
+      - ../services/kafka/libs/kafka-oauth-common-${KAFKA_OAUTH_LIB_VERSION}.jar:/usr/share/java/kafka/kafka-oauth-common-${KAFKA_OAUTH_LIB_VERSION}.jar
+      - ../services/kafka/libs/kafka-oauth-server-${KAFKA_OAUTH_LIB_VERSION}.jar:/usr/share/java/kafka/kafka-oauth-server-${KAFKA_OAUTH_LIB_VERSION}.jar
+      - ../services/kafka/libs/kafka-oauth-client-${KAFKA_OAUTH_LIB_VERSION}.jar:/usr/share/java/kafka/kafka-oauth-client-${KAFKA_OAUTH_LIB_VERSION}.jar
+      - ../services/kafka/libs/nimbus-jose-jwt-${NIMBUS_JWT_LIB_VERSION}.jar:/usr/share/java/kafka/nimbus-jose-jwt-${NIMBUS_JWT_LIB_VERSION}.jar
+      - ../services/kafka/libs/jmx_prometheus_javaagent.jar:/usr/bin/jmx/jmx_prometheus_javaagent.jar
+      - ../services/kafka/metrics/exporter.yml:/usr/bin/jmx/exporter.yml
+      - ../secrets/certs/kafka0:/etc/kafka/secrets
+    environment:
+      <<: *ldnhan-kafka-env
+      KAFKA_BROKER_ID: 'kafka0'
+      KAFKA_LISTENERS: CONTROLLER://kafka0:29092,INTERNAL://kafka0:39092,EXTERNAL://kafka0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka0:39092,EXTERNAL://kafka0:9092
