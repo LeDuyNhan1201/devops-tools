@@ -73,6 +73,35 @@ create_secrets() {
   done
 }
 
+download_jar() {
+  local strimzi_repo_domain="https://repo1.maven.org/maven2/io/strimzi/"
+  local strimzi_libs=(
+    "kafka-oauth-common:${KAFKA_OAUTH_LIB_VERSION}",
+    "kafka-oauth-server:${KAFKA_OAUTH_LIB_VERSION}",
+    "kafka-oauth-client:${KAFKA_OAUTH_LIB_VERSION}",
+
+    # TODO: Add more libraries as needed, pattern is "lib-name:lib-version"
+  )
+  local dest_dir="$2"
+
+  mkdir -p "$dest_dir" || {
+    echo "Cannot create directory: $dest_dir"
+    return 1
+  }
+
+  local filename
+  filename=$(basename "$strimzi_repo_domain")
+
+  echo "Downloading $filename..."
+
+  if cstrimzi_repo_domain -fL --retry 3 --retry-delay 2 -o "$dest_dir/$filename" "$strimzi_repo_domain"; then
+    echo "Downloaded to $dest_dir/$filename"
+  else
+    echo "Failed to download $strimzi_repo_domain"
+    return 1
+  fi
+}
+
 create_env_file() {
   echo "Creating env file"
 

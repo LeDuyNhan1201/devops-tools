@@ -422,7 +422,6 @@ services:
       - ../services/kafka/libs/kafka-oauth-common-${KAFKA_OAUTH_LIB_VERSION}.jar:/usr/share/java/kafka/kafka-oauth-common-${KAFKA_OAUTH_LIB_VERSION}.jar
       - ../services/kafka/libs/kafka-oauth-server-${KAFKA_OAUTH_LIB_VERSION}.jar:/usr/share/java/kafka/kafka-oauth-server-${KAFKA_OAUTH_LIB_VERSION}.jar
       - ../services/kafka/libs/kafka-oauth-client-${KAFKA_OAUTH_LIB_VERSION}.jar:/usr/share/java/kafka/kafka-oauth-client-${KAFKA_OAUTH_LIB_VERSION}.jar
-      - ../services/kafka/libs/nimbus-jose-jwt-${NIMBUS_JWT_LIB_VERSION}.jar:/usr/share/java/kafka/nimbus-jose-jwt-${NIMBUS_JWT_LIB_VERSION}.jar
       - ../services/kafka/libs/jmx_prometheus_javaagent.jar:/usr/bin/jmx/jmx_prometheus_javaagent.jar
       - ../services/kafka/metrics/exporter.yml:/usr/bin/jmx/exporter.yml
       - ../secrets/certs/kafka0:/etc/kafka/secrets
